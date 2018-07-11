@@ -1,2 +1,0 @@
-# opm
-Open Product Model
