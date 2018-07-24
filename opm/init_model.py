@@ -327,12 +327,38 @@ composite_technology_description_table.insert({'composite_technology': prepreg_i
 composite_technology_description_table.insert({'composite_technology': prepreg_id, 'language': fr_id, 'composite_technology_sdesc': 'Prépreg', 'composite_technology_ldesc': 'Pré-imprégné'})
 composite_technology_description_table.insert({'composite_technology': prepreg_id, 'language': es_id, 'composite_technology_sdesc': 'Preimpregnado', 'composite_technology_ldesc': 'Preimpregnado'})
 
+composite_laminate_table = db.create_table('composite_laminate', primary_id='composite_laminate_code', primary_type=db.types.text)
+composite_laminate_table.create_column('matrix_material', db.types.text)  # FK to material
+composite_laminate_table.create_column('composite_technology', db.types.text)  # FK to composite_technology
+
+composite_laminate_plies_table = db.create_table('composite_laminate_plies', primary_id=False)
+composite_laminate_plies_table.create_column('composite_laminate', db.types.text)
+composite_laminate_plies_table.create_column('composite_ply', db.types.text)
+composite_laminate_plies_table.create_column('order', db.types.integer)
+composite_laminate_plies_table.create_index(['composite_laminate', 'order'], name='composite_laminate_plies_ix', unique=True)
+
+composite_ply_table = db.create_table('composite_ply', primary_id='composite_ply_code', primary_type=db.types.text)
+composite_ply_table.create_column('composite_reinforcement', db.types.text)
+composite_ply_table.create_column('material', db.types.text)  # FK to material
+composite_ply_table.create_column('cad_file', db.types.text)
+composite_ply_table.create_column('cad_file_flat', db.types.text)  # -> how to cut the reinforcement
 
 # ############
 # Suppliers #
 # ############
 supplier_table = db.create_table('supplier', primary_id='supplier_code', primary_type=db.types.text)
 thepaintshop_id = supplier_table.insert({'supplier_code': 'THE_PAINT_SHOP', 'supplier_name': 'The Paint Shop', 'supplier_website': 'www.thepaintshop.com', 'supplier_email': 'info@thepaintshop.com', 'country': usa_id})
+
+part_supplier_table = db.create_table('part_supplier', primary_id=False)
+part_supplier_table.create_column('part_definition', db.types.text)  # FK
+part_supplier_table.create_column('supplier', db.types.text)  # FK
+part_supplier_table.create_column('preference_order', db.types.integer)
+part_supplier_table.create_column('supplier_reference', db.types.text)
+part_supplier_table.create_column('price', db.types.float)
+part_supplier_table.create_column('price_currency', db.types.text)  # FK
+part_supplier_table.create_column('price_unit', db.types.text)  # FK
+part_supplier_table.create_index(['part_definition', 'supplier', 'preference_order'], name='part_supplier_ix_0', unique=True)
+part_supplier_table.create_index(['part_definition', 'supplier'], name='part_supplier_ix_1', unique=False)
 
 
 # ##########
@@ -355,6 +381,14 @@ coating_supplier_table.create_column('supplier', db.types.text)
 coating_supplier_table.create_column('preference_order', db.types.integer)
 coating_supplier_table.create_index(['coating', 'supplier', 'preference_order'], name='coating_supplier_ix', unique=True)
 coating_supplier_table.insert({'coating': pu_2c_id, 'supplier': thepaintshop_id, 'preference_order': 1, 'supplier_reference': 'PU-00073', 'price': 0.05, 'price_currency': usd_id, 'price_unit': cm3_id})
+
+part_coating_table = db.create_table('part_coating', primary_id=False)
+part_coating_table.create_column('part_definition', db.types.text)
+part_coating_table.create_column('part_occurrence', db.types.text)
+part_coating_table.create_column('coating', db.types.text)
+part_coating_table.create_column('order', db.types.integer)
+part_coating_table.create_column('required_quantity', db.types.float)
+part_coating_table.create_column('required_quantity_unit', db.types.text)  # FK to units
 
 
 # #############
@@ -398,19 +432,198 @@ simulation_type_format_description_table.insert({'simulation_type_format': code_
 simulation_type_format_description_table.insert({'simulation_type_format': code_aster_id, 'language': fr_id, 'simulation_type_format_sdesc': "Code Aster", 'simulation_type_format_ldesc': 'Code Aster'})
 simulation_type_format_description_table.insert({'simulation_type_format': code_aster_id, 'language': es_id, 'simulation_type_format_sdesc': "Code Aster", 'simulation_type_format_ldesc': 'Code Aster'})
 
+simulation_table = db.create_table('simulation', primary_id='simulation_code', primary_type=db.types.text)
+simulation_table.create_column('simulation_code', db.types.text)
+simulation_table.create_column('part_definition', db.types.text)
+simulation_table.create_column('assembly', db.types.text)
+simulation_table.create_column('product', db.types.text)
+simulation_table.create_column('simulation_type_format', db.types.text)
+simulation_table.create_column('simulation_path', db.types.text)
+
+simulation_description_table = db.create_table('simulation_description', primary_id=False)
+simulation_description_table.create_column('simulation', db.types.text)
+simulation_description_table.create_column('language', db.types.text)
+simulation_description_table.create_column('simulation_sdesc', db.types.text)
+simulation_description_table.create_column('simulation_ldesc', db.types.text)
+simulation_description_table.create_index(['simulation', 'language'], name='simulation_description_ix', unique=True)
+
+
 # ###########
 # Documents #
 # ###########
+document_type_table = db.create_table('document_type', primary_id='document_type_code', primary_type=db.types.text)
+datasheet_id = document_type_table.insert({'document_type_code': 'DATASHEET'})
+manual_id = document_type_table.insert({'document_type_code': 'MANUAL'})
 
+document_type_description_table = db.create_table('document_type_description', primary_id=False)
+document_type_description_table.create_column('document_type', db.types.text)
+document_type_description_table.create_column('language', db.types.text)
+document_type_description_table.create_index(['document_type', 'language'], name='document_type_description_ix', unique=True)
+document_type_description_table.insert({'document_type': datasheet_id, 'language': en_id, 'document_type_sdesc': "Datasheet", 'document_type_ldesc': 'Datasheet'})
+document_type_description_table.insert({'document_type': datasheet_id, 'language': fr_id, 'document_type_sdesc': "Fiche technique", 'document_type_ldesc': 'Fiche technique'})
+document_type_description_table.insert({'document_type': datasheet_id, 'language': es_id, 'document_type_sdesc': "Ficha de datos", 'document_type_ldesc': 'Ficha de datos'})
+document_type_description_table.insert({'document_type': manual_id, 'language': en_id, 'document_type_sdesc': "Manual", 'document_type_ldesc': 'Manual'})
+document_type_description_table.insert({'document_type': manual_id, 'language': fr_id, 'document_type_sdesc': "Mode d'emploi", 'document_type_ldesc': "Mode d'emploi"})
+document_type_description_table.insert({'document_type': manual_id, 'language': es_id, 'document_type_sdesc': "Manual", 'document_type_ldesc': 'Manual'})
+
+document_format_table = db.create_table('document_format', primary_id='document_format_code', primary_type=db.types.text)
+odt_id = document_format_table.insert({'document_format_code': 'ODT'})
+pdf_id = document_format_table.insert({'document_format_code': 'PDF'})
+
+document_format_description_table = db.create_table('document_format_description', primary_id=False)
+document_format_description_table.create_column('document_format', db.types.text)
+document_format_description_table.create_column('language', db.types.text)
+document_format_description_table.create_index(['document_format', 'language'], name='document_format_description_ix', unique=True)
+document_format_description_table.insert({'document_format': odt_id, 'language': en_id, 'document_format_sdesc': "ODT", 'document_format_ldesc': 'Open Document Text'})
+document_format_description_table.insert({'document_format': odt_id, 'language': fr_id, 'document_format_sdesc': "ODT", 'document_format_ldesc': 'Texte Open Document'})
+document_format_description_table.insert({'document_format': odt_id, 'language': es_id, 'document_format_sdesc': "ODT", 'document_format_ldesc': 'Texto Open Document'})
+document_format_description_table.insert({'document_format': pdf_id, 'language': en_id, 'document_format_sdesc': "PDF", 'document_format_ldesc': 'Portable Document Format'})
+document_format_description_table.insert({'document_format': pdf_id, 'language': fr_id, 'document_format_sdesc': "PDF", 'document_format_ldesc': 'Document PDF'})
+document_format_description_table.insert({'document_format': pdf_id, 'language': es_id, 'document_format_sdesc': "PDF", 'document_format_ldesc': 'Documento PDF'})
+
+document_table = db.create_table('document', primary_id='document_code', primary_type=db.types.text)
+document_table.create_column('document_code', db.types.text)
+document_table.create_column('part_definition', db.types.text)
+document_table.create_column('assembly', db.types.text)
+document_table.create_column('product', db.types.text)
+document_table.create_column('document_type', db.types.text)  # FK to document_type
+document_table.create_column('document_format', db.types.text)  # FK to document_format
+document_table.create_column('document_path', db.types.text)
+
+document_description_table = db.create_table('document_description', primary_id=False)
+document_description_table.create_column('document', db.types.text)
+document_description_table.create_column('language', db.types.text)
+document_description_table.create_column('document_sdesc', db.types.text)
+document_description_table.create_column('document_ldesc', db.types.text)
+document_description_table.create_index(['document', 'language'], name='document_description_ix', unique=True)
 
 # ############
 # Tolerances #
 # ############
+tolerance_type_table = db.create_table('tolerance_type', primary_id='tolerance_type_code', primary_type=db.types.text)
+tolerance_type_table.insert({'tolerance_type_code': 'MAXIMUM'})
+tolerance_type_table.insert({'tolerance_type_code': 'MINIMUM'})
+tolerance_type_table.insert({'tolerance_type_code': 'RANGE'})
+tolerance_type_table.insert({'tolerance_type_code': 'STANDARD'})
 
+tolerance_table = db.create_table('tolerance', primary_id='tolerance_code', primary_type=db.types.text)
+tolerance_table.create_column('tolerance_type', db.types.text)  # FK
+tolerance_table.create_column('standard', db.types.text)
+tolerance_table.create_column('tolerance_value', db.types.text)
+
+# todo : standards table
 
 # ################
 # Physical model #
 # ################
+status_table = db.create_table('status', primary_id='status_code', primary_type=db.types.text)
+alpha_id = status_table.insert({'status_code': 'ALPHA'})
+beta_id = status_table.insert({'status_code': 'BETA'})
+ready_id = status_table.insert({'status_code': 'READY'})
+
+status_description_table = db.create_table('status_description', primary_id=False)
+status_description_table.create_column('status', db.types.text)
+status_description_table.create_column('language', db.types.text)
+status_description_table.create_index(['status', 'language'], name='status_description_ix', unique=True)
+status_description_table.insert({'status': alpha_id, 'language': en_id, 'status_sdesc': "Alpha", 'status_ldesc': 'Alpha status'})
+status_description_table.insert({'status': alpha_id, 'language': fr_id, 'status_sdesc': "Alpha", 'status_ldesc': 'Statut alpha'})
+status_description_table.insert({'status': alpha_id, 'language': es_id, 'status_sdesc': "Alpha", 'status_ldesc': 'Estado alpha'})
+status_description_table.insert({'status': beta_id, 'language': en_id, 'status_sdesc': "Beta", 'status_ldesc': 'Beta status'})
+status_description_table.insert({'status': beta_id, 'language': fr_id, 'status_sdesc': "Beta", 'status_ldesc': 'Statut beta'})
+status_description_table.insert({'status': beta_id, 'language': es_id, 'status_sdesc': "Beta", 'status_ldesc': 'Estado beta'})
+status_description_table.insert({'status': ready_id, 'language': en_id, 'status_sdesc': "Ready", 'status_ldesc': 'Ready status'})
+status_description_table.insert({'status': ready_id, 'language': fr_id, 'status_sdesc': "Prêt", 'status_ldesc': 'Statut prêt'})
+status_description_table.insert({'status': ready_id, 'language': es_id, 'status_sdesc': "Listo", 'status_ldesc': 'Estado listo'})
+
+product_table = db.create_table('product', primary_id='product_code', primary_type=db.types.text)
+product_table.create_column('main_assembly', db.types.text)  # FK to assembly
+product_table.create_column('product_status', db.types.text)  # FK to status
+
+product_description_table = db.create_table('product_description', primary_id=False)
+product_description_table.create_column('product', db.types.text)
+product_description_table.create_column('language', db.types.text)
+product_description_table.create_column('product_sdesc', db.types.text)
+product_description_table.create_column('product_ldesc', db.types.text)
+product_description_table.create_index(['product', 'language'], name='product_description_ix', unique=True)
+
+assembly_table = db.create_table('assembly', primary_id='assembly_code', primary_type=db.types.text)
+
+assembly_assembly_table = db.create_table('assembly_assembly', primary_id='assembly', primary_type=db.types.text)
+assembly_assembly_table.create_column('sub_assembly', db.types.text)
+
+assembly_parts_table = db.create_table('assembly_parts', primary_id='assembly', primary_type=db.types.text)
+assembly_parts_table.create_column('part_occurrence', db.types.text)
+
+part_definition_table = db.create_table('part_definition', primary_id='part_definition_code', primary_type=db.types.text)
+part_definition_table.create_column('is_made', db.types.boolean)
+part_definition_table.create_column('is_bought', db.types.boolean)
+part_definition_table.create_column('cad_file', db.types.text)
+part_definition_table.create_column('parts_library', db.types.text)
+part_definition_table.create_column('parts_library_ref', db.types.text)
+part_definition_table.create_column('script_file', db.types.text)
+part_definition_table.create_column('material', db.types.text)  # FK to material
+part_definition_table.create_column('cg_x', db.types.float)
+part_definition_table.create_column('cg_y', db.types.float)
+part_definition_table.create_column('cg_z', db.types.float)
+part_definition_table.create_column('weight', db.types.float)
+part_definition_table.create_column('weight_unit', db.types.text)  # FK to unit
+part_definition_table.create_column('price_estimate', db.types.float)
+part_definition_table.create_column('price_estimate_currency', db.types.text)  # FK to currency
+
+part_occurrence_table = db.create_table('part_occurrence', primary_id='part_occurrence_code', primary_type=db.types.text)
+part_occurrence_table.create_column('part_definition', db.types.text)  # FK to part_definition
+# todo : add positionning info (can be derived from anchors and joints but should be cached)
+
+anchor_table = db.create_table('anchor', primary_id=False)
+anchor_table.create_column('part_definition', db.types.text)  # FK to part_definition
+anchor_table.create_column('anchor_code', db.types.text)
+anchor_table.create_column('p_x', db.types.float)
+anchor_table.create_column('p_y', db.types.float)
+anchor_table.create_column('p_z', db.types.float)
+anchor_table.create_column('u_x', db.types.float)
+anchor_table.create_column('u_y', db.types.float)
+anchor_table.create_column('v_x', db.types.float)
+anchor_table.create_column('v_y', db.types.float)
+anchor_table.create_column('tolerance', db.types.text)  # FK to tolerance
+anchor_table.create_index(['part_definition', 'anchor_code'], name='anchor_ix', unique=True)
+
+joints_table = db.create_table('joints', primary_id=False)
+joints_table.create_column('part_occurrence_master', db.types.text)
+joints_table.create_column('part_occurrence_master_anchor', db.types.text)
+joints_table.create_column('part_occurrence_slave', db.types.text)
+joints_table.create_column('part_occurrence_slave_anchor', db.types.text)
+joints_table.create_column('joint_type', db.types.text)
+joints_table.create_column('tx', db.types.float)
+joints_table.create_column('ty', db.types.float)
+joints_table.create_column('tz', db.types.float)
+joints_table.create_column('rx', db.types.float)
+joints_table.create_column('ry', db.types.float)
+joints_table.create_column('rz', db.types.float)
+joints_table.create_index(['part_occurrence_master', 'part_occurrence_master_anchor', 'part_occurrence_slave', 'part_occurrence_slave_anchor'], name='joints_ix', unique=True)
+
+joint_type_table = db.create_table('joint_type', primary_id='joint_type_code', primary_type=db.types.text)
+joint_type_table.create_column('dofs', db.types.integer)
+joint_type_table.create_column('tx', db.types.boolean)
+joint_type_table.create_column('ty', db.types.boolean)
+joint_type_table.create_column('tz', db.types.boolean)
+joint_type_table.create_column('rx', db.types.boolean)
+joint_type_table.create_column('ry', db.types.boolean)
+joint_type_table.create_column('rz', db.types.boolean)
+free_id = joint_type_table.insert({'joint_type_code': 'FREE', 'dofs': 6, 'tx': True, 'ty': True, 'tz': True, 'rx': True, 'ry': True, 'rz': True})
+rigid_id = joint_type_table.insert({'joint_type_code': 'RIGID', 'dofs': 0, 'tx': False, 'ty': False, 'tz': False, 'rx': False, 'ry': False, 'rz': False})
+
+joint_type_description_table = db.create_table('joint_type_description', primary_id=False)
+joint_type_description_table.create_column('joint_type', db.types.text)
+joint_type_description_table.create_column('language', db.types.text)
+joint_type_description_table.create_column('joint_type_sdesc', db.types.text)
+joint_type_description_table.create_column('joint_type_ldesc', db.types.text)
+joint_type_description_table.create_index(['joint_type', 'language'], name='joint_type_description_ix', unique=True)
+joint_type_description_table.insert({'joint_type': free_id, 'language': en_id, 'joint_type_sdesc': "Free", 'joint_type_ldesc': 'Free'})
+joint_type_description_table.insert({'joint_type': free_id, 'language': fr_id, 'joint_type_sdesc': "Libre", 'joint_type_ldesc': 'Libre'})
+joint_type_description_table.insert({'joint_type': free_id, 'language': es_id, 'joint_type_sdesc': "Libre", 'joint_type_ldesc': 'Libre'})
+joint_type_description_table.insert({'joint_type': rigid_id, 'language': en_id, 'joint_type_sdesc': "Rigid", 'joint_type_ldesc': 'Rigid'})
+joint_type_description_table.insert({'joint_type': rigid_id, 'language': fr_id, 'joint_type_sdesc': "Encastrement", 'joint_type_ldesc': 'Encastrement'})
+joint_type_description_table.insert({'joint_type': rigid_id, 'language': es_id, 'joint_type_sdesc': "Rígido", 'joint_type_ldesc': 'Rígido'})
 
 
 # ##############
