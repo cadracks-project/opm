@@ -482,12 +482,14 @@ document_format_description_table.insert({'document_format': pdf_id, 'language':
 document_format_description_table.insert({'document_format': pdf_id, 'language': es_id, 'document_format_sdesc': "PDF", 'document_format_ldesc': 'Documento PDF'})
 
 document_table = db.create_table('document', primary_id='document_code', primary_type=db.types.text)
-document_table.create_column('document_code', db.types.text)
-document_table.create_column('part_definition', db.types.text)
-document_table.create_column('assembly', db.types.text)
-document_table.create_column('product', db.types.text)
+# document_table.create_column('document_code', db.types.text)
+document_table.create_column('part_definition', db.types.text)  # FK
+document_table.create_column('assembly', db.types.text)  # FK
+document_table.create_column('product', db.types.text)  # FK
+document_table.create_column('requirement', db.types.text)  # FK
 document_table.create_column('document_type', db.types.text)  # FK to document_type
 document_table.create_column('document_format', db.types.text)  # FK to document_format
+document_table.create_column('document_language', db.types.text)  # FK to language
 document_table.create_column('document_path', db.types.text)
 
 document_description_table = db.create_table('document_description', primary_id=False)
@@ -500,11 +502,20 @@ document_description_table.create_index(['document', 'language'], name='document
 # ############
 # Tolerances #
 # ############
+# todo : clearer model to what the tolerance applies
 tolerance_type_table = db.create_table('tolerance_type', primary_id='tolerance_type_code', primary_type=db.types.text)
 tolerance_type_table.insert({'tolerance_type_code': 'MAXIMUM'})
 tolerance_type_table.insert({'tolerance_type_code': 'MINIMUM'})
 tolerance_type_table.insert({'tolerance_type_code': 'RANGE'})
 tolerance_type_table.insert({'tolerance_type_code': 'STANDARD'})
+
+tolerance_type_description_table = db.create_table('tolerance_type_description', primary_id=False)
+tolerance_type_description_table.create_column('tolerance_type', db.types.text)
+tolerance_type_description_table.create_column('language', db.types.text)
+tolerance_type_description_table.create_column('tolerance_type_sdesc', db.types.text)
+tolerance_type_description_table.create_column('tolerance_type_ldesc', db.types.text)
+tolerance_type_description_table.create_index(['tolerance_type', 'language'], name='tolerance_type_description_ix', unique=True)
+# todo : tolerance type translations
 
 tolerance_table = db.create_table('tolerance', primary_id='tolerance_code', primary_type=db.types.text)
 tolerance_table.create_column('tolerance_type', db.types.text)  # FK
@@ -630,6 +641,46 @@ joint_type_description_table.insert({'joint_type': rigid_id, 'language': es_id, 
 # Requirements #
 # ##############
 
+requirement_table = db.create_table('requirement', primary_id='requirement_code', primary_type=db.types.text)
+requirement_table.create_column('product', db.types.text)  # FK
+requirement_table.create_column('requirement_origin', db.types.text)  # FK
+requirement_table.create_column('met', db.types.boolean)
+
+requirement_description_table = db.create_table('requirement_description', primary_id=False)
+requirement_description_table.create_column('requirement', db.types.text)
+requirement_description_table.create_column('language', db.types.text)
+requirement_description_table.create_column('requirement_sdesc', db.types.text)
+requirement_description_table.create_column('requirement_ldesc', db.types.text)
+requirement_description_table.create_index(['requirement', 'language'], name='requirement_description_ix', unique=True)
+
+requirement_origin_table = db.create_table('requirement_origin', primary_id='requirement_origin_code', primary_type=db.types.text)
+rule_id = requirement_origin_table.insert({'requirement_origin_code': 'RULE'})
+industrial_standard_id = requirement_origin_table.insert({'requirement_origin_code': 'INDUSTRIAL_STANDARD'})
+market_id = requirement_origin_table.insert({'requirement_origin_code': 'MARKET'})
+contract_id = requirement_origin_table.insert({'requirement_origin_code': 'CONTRACT'})
+experience_id = requirement_origin_table.insert({'requirement_origin_code': 'EXPERIENCE'})
+
+requirement_origin_description_table = db.create_table('requirement_origin_description', primary_id=False)
+requirement_origin_description_table.create_column('requirement_origin', db.types.text)
+requirement_origin_description_table.create_column('language', db.types.text)
+requirement_origin_description_table.create_column('requirement_origin_sdesc', db.types.text)
+requirement_origin_description_table.create_column('requirement_origin_ldesc', db.types.text)
+requirement_origin_description_table.create_index(['requirement_origin', 'language'], name='requirement_origin_description_ix', unique=True)
+requirement_origin_description_table.insert({'requirement_origin': rule_id, 'language': en_id, 'requirement_origin_sdesc': 'Rules', 'requirement_origin_ldesc': "Rules & Law"})
+requirement_origin_description_table.insert({'requirement_origin': rule_id, 'language': fr_id, 'requirement_origin_sdesc': 'Réglementation', 'requirement_origin_ldesc': "Réglementations et lois"})
+requirement_origin_description_table.insert({'requirement_origin': rule_id, 'language': es_id, 'requirement_origin_sdesc': 'Regulación', 'requirement_origin_ldesc': "Regulaciones y leyes"})
+requirement_origin_description_table.insert({'requirement_origin': industrial_standard_id, 'language': en_id, 'requirement_origin_sdesc': 'Standard', 'requirement_origin_ldesc': "Standards and norms"})
+requirement_origin_description_table.insert({'requirement_origin': industrial_standard_id, 'language': fr_id, 'requirement_origin_sdesc': 'Normes', 'requirement_origin_ldesc': "Normes et standards"})
+requirement_origin_description_table.insert({'requirement_origin': industrial_standard_id, 'language': es_id, 'requirement_origin_sdesc': 'Normas', 'requirement_origin_ldesc': "Normas"})
+requirement_origin_description_table.insert({'requirement_origin': market_id, 'language': en_id, 'requirement_origin_sdesc': 'Market', 'requirement_origin_ldesc': "Market"})
+requirement_origin_description_table.insert({'requirement_origin': market_id, 'language': fr_id, 'requirement_origin_sdesc': 'Marché', 'requirement_origin_ldesc': "Marché"})
+requirement_origin_description_table.insert({'requirement_origin': market_id, 'language': es_id, 'requirement_origin_sdesc': 'Mercado', 'requirement_origin_ldesc': "Mercado"})
+requirement_origin_description_table.insert({'requirement_origin': contract_id, 'language': en_id, 'requirement_origin_sdesc': 'Contract', 'requirement_origin_ldesc': "Contract"})
+requirement_origin_description_table.insert({'requirement_origin': contract_id, 'language': fr_id, 'requirement_origin_sdesc': 'Contrat', 'requirement_origin_ldesc': "Engagement contractuel"})
+requirement_origin_description_table.insert({'requirement_origin': contract_id, 'language': es_id, 'requirement_origin_sdesc': 'Contrato', 'requirement_origin_ldesc': "Compromiso contractual"})
+requirement_origin_description_table.insert({'requirement_origin': experience_id, 'language': en_id, 'requirement_origin_sdesc': 'Experience', 'requirement_origin_ldesc': "Experience"})
+requirement_origin_description_table.insert({'requirement_origin': experience_id, 'language': fr_id, 'requirement_origin_sdesc': 'Expérience', 'requirement_origin_ldesc': "Expérience"})
+requirement_origin_description_table.insert({'requirement_origin': experience_id, 'language': es_id, 'requirement_origin_sdesc': 'Experiencia', 'requirement_origin_ldesc': "Experiencia"})
 
 for table in db.tables:
     print(table)
