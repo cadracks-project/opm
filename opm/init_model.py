@@ -565,8 +565,12 @@ def init_db(db):
     assembly_assembly_table = db.create_table('assembly_assembly', primary_id='assembly', primary_type=db.types.text)
     assembly_assembly_table.create_column('sub_assembly', db.types.text)
 
-    assembly_parts_table = db.create_table('assembly_parts', primary_id='assembly', primary_type=db.types.text)
+    assembly_parts_table = db.create_table('assembly_parts', primary_id=False)
+    assembly_parts_table.create_column('assembly', db.types.text)
     assembly_parts_table.create_column('part_occurrence', db.types.text)
+    assembly_parts_table.create_index(['assembly', 'part_occurrence'],
+                                      name='assembly_parts_ix',
+                                      unique=True)
 
     part_definition_table = db.create_table('part_definition', primary_id='part_definition_code', primary_type=db.types.text)
     part_definition_table.create_column('is_made', db.types.boolean)
@@ -596,8 +600,10 @@ def init_db(db):
     anchor_table.create_column('p_z', db.types.float)
     anchor_table.create_column('u_x', db.types.float)
     anchor_table.create_column('u_y', db.types.float)
+    anchor_table.create_column('u_z', db.types.float)
     anchor_table.create_column('v_x', db.types.float)
     anchor_table.create_column('v_y', db.types.float)
+    anchor_table.create_column('v_z', db.types.float)
     anchor_table.create_column('tolerance', db.types.text)  # FK to tolerance
     anchor_table.create_index(['part_definition', 'anchor_code'], name='anchor_ix', unique=True)
 

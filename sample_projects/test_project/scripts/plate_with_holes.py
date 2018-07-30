@@ -4,6 +4,8 @@ r"""Flat plate with holes Python creation script"""
 
 from __future__ import division
 
+from opm.anchors import Anchor
+
 from ccad.model import cylinder, translated, box
 # from ccad.model import prism, filling, ngon
 
@@ -28,21 +30,21 @@ for c in cylinders:
     plate -= c
 part = plate
 
-anchors = dict()
+anchors = list()
 for i, (x, y) in enumerate(hole_positions, 1):
-    anchors[str(i)] = {"position": (x, y, e),
-                       "direction": (0., 0., -1.),
-                       "dimension": hole_d,
-                       "description": "%s mm hole" % hole_d}
+    anchors.append(Anchor(p=(x, y, e),
+                          u=(0., 0., -1.),
+                          v=(0., 1., 0.),
+                          name=str(i)))
 
-if __name__ == '__main__':
-    # part.to_step("plate_with_holes.step", precision_mode=0, assembly=0,
-    #              schema='AP203', surface_curve_mode=1, transfer_mode=0,
-    #              units=units)
-    import ccad.display as cd
-    v = cd.view()
-    v.display(part, color=(0.1, 0.1, 1.0), transparency=0.3)
-    for k, anchor in anchors.items():
-        v.display_vector(origin=anchor['position'],
-                         direction=anchor['direction'])
-    cd.start()
+# if __name__ == '__main__':
+#     # part.to_step("plate_with_holes.step", precision_mode=0, assembly=0,
+#     #              schema='AP203', surface_curve_mode=1, transfer_mode=0,
+#     #              units=units)
+#     import ccad.display as cd
+#     v = cd.view()
+#     v.display(part, color=(0.1, 0.1, 1.0), transparency=0.3)
+#     for k, anchor in anchors.items():
+#         v.display_vector(origin=anchor['position'],
+#                          direction=anchor['direction'])
+#     cd.start()

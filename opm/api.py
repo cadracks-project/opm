@@ -1,6 +1,11 @@
 # coding: utf-8
 
+from os.path import basename, splitext
+import imp
+
 import dataset
+
+from opm.stepzip import extract_stepzip
 
 
 def get_sqlite_db(filename_sqlite_db):
@@ -26,7 +31,41 @@ def get_sqlite_db(filename_sqlite_db):
 
 
 def _add_part_definition_stepzip(db, code, stepzip):
-    raise NotImplementedError
+    import re
+    anchors = dict()
+    stepfile_path, anchorsfile_path = extract_stepzip(stepzip)
+    with open(anchorsfile_path) as f:
+        lines = f.readlines()
+        for line in lines:
+            if line not in ["\n", "\r\n"] and not line.startswith("#"):
+                items = re.findall(r'\S+', line)
+                key = items[0]
+                data = [float(v) for v in items[1].split(",")]
+                position = (data[0], data[1], data[2])
+                direction = (data[3], data[4], data[5])
+                anchors[key] = {"position": position,
+                                "direction": direction}
+
+    db['part_definition'].insert({'part_definition_code': code,
+                                  'cad_file': stepfile_path,
+                                  'parts_library': None,
+                                  'parts_library_ref': None,
+                                  'script_file': None})
+    # todo -> update the stepzip example with p, u, v
+    for k, v in anchors.items():
+        db['anchor'].insert({'part_definition': code,
+                             'anchor_code': k,
+                             'p_x': v['position'][0],
+                             'p_y': v['position'][1],
+                             'p_z': v['position'][2],
+                             'u_x': v['direction'][0],
+                             'u_y': v['direction'][1],
+                             'u_z': v['direction'][2],
+                             'v_x': None,
+                             'v_y': None,
+                             'v_z': None,
+                             'tolerance': ""  # todo -> tolerance
+                             })
 
 
 def _add_part_definition_script(db, code, script):
@@ -37,7 +76,23 @@ def _add_part_definition_script(db, code, script):
                                   'parts_library': None,
                                   'parts_library_ref': None,
                                   'script_file': script})
-    # todo : feed the anchors table
+
+    module_ = imp.load_source(splitext(basename(script))[0], script)
+    anchors = module_.anchors
+    for anchor in anchors:
+        db['anchor'].insert({'part_definition': code,
+                             'anchor_code': anchor.name,
+                             'p_x': anchor.p[0],
+                             'p_y': anchor.p[1],
+                             'p_z': anchor.p[2],
+                             'u_x': anchor.u[0],
+                             'u_y': anchor.u[1],
+                             'u_z': anchor.u[2],
+                             'v_x': anchor.v[0],
+                             'v_y': anchor.v[1],
+                             'v_z': anchor.v[2],
+                             'tolerance': ""  # todo -> tolerance
+                             })
 
 
 def _add_part_definition_library(db, code, library, ref):
@@ -46,7 +101,7 @@ def _add_part_definition_library(db, code, library, ref):
                                   'parts_library': library,
                                   'parts_library_ref': ref,
                                   'script_file': None})
-    # todo : feed the anchors table
+    # todo : feed the anchors table -> requires modification in party library
 
 
 def add_part_definition(db, code, origin, *args, **kwargs):
@@ -109,17 +164,80 @@ def add_product_description(db, product_code, language, sdesc, ldesc):
 # assembly
 
 
-def add_assembly(db, product_code, assembly_code):
-    raise NotImplementedError
+def add_assembly(db, assembly_code):
+    r"""
+    
+    Parameters
+    ----------
+    db
+    assembly_code
+
+    Note
+    ----
+    product refers to an assembly but an assembly can be used in different
+    products
+
+    """
+    db['assembly'].insert({'assembly_code': assembly_code})
 
 
-def add_part(product_code, assembly_code, part_definition):
-    raise NotImplementedError
+def assembly_add_part(db, assembly, part_definition, part_occurence_code):
+
+    # create a part occurrence from the part definition
+    db['part_occurrence'].insert({'part_occurrence_code': part_occurence_code,
+                                 'part_definition': part_definition})
+
+    # link the assembly to the part occurrence
+    db['assembly_parts'].insert({'assembly': assembly,
+                                 'part_occurrence': part_occurence_code})
+
+
+def assembly_add_constraint(db,
+                            assembly,
+                            master_part_occurrence,
+                            master_part_occurrence_anchor,
+                            slave_part_occurrence,
+                            slave_part_occurrence_anchor,
+                            joint_type,
+                            joint_tx=0,
+                            joint_ty=0,
+                            joint_tz=0,
+                            joint_rx=0,
+                            joint_ry=0,
+                            joint_rz=0):
+    # make sure the part occurrences exist
+    m = db['assembly_parts'].find_one(assembly=assembly,
+                                      part_occurrence=master_part_occurrence)
+    s = db['assembly_parts'].find_one(assembly=assembly,
+                                      part_occurrence=slave_part_occurrence)
+    if m is None:
+        raise ValueError("The master part occurrence is undefined")
+    if s is None:
+        raise ValueError("The slave part occurrence is undefined")
+
+    # make sure the joint type exists
+    j = db['joint_type'].find_one(joint_type_code=joint_type)
+    if j is None:
+        raise ValueError("The joint type is undefined")
+
+    # add an entry in the joint table
+    db['joints'].insert({'part_occurrence_master': master_part_occurrence,
+                         'part_occurrence_master_anchor': master_part_occurrence_anchor,
+                         'part_occurrence_slave': slave_part_occurrence,
+                         'part_occurrence_slave_anchor': slave_part_occurrence_anchor,
+                         'joint_type': joint_type,
+                         'tx': joint_tx, 'ty': joint_ty, 'tz': joint_tz,
+                         'rx': joint_rx, 'ry': joint_ry, 'rz': joint_rz})
+
+    # compute the slave position / transformation matrix
+
+    # update the part occurrence data with the position / transformation matrix
+
 
 # ##########
 # Read API #
 # ##########
 
 
-def product_shape(product_code):
+def product_shape(db, product_code):
     raise NotImplementedError
