@@ -41,29 +41,29 @@ def _add_part_definition_stepzip(db, code, stepzip):
                 items = re.findall(r'\S+', line)
                 key = items[0]
                 data = [float(v) for v in items[1].split(",")]
-                position = (data[0], data[1], data[2])
-                direction = (data[3], data[4], data[5])
-                anchors[key] = {"position": position,
-                                "direction": direction}
+                p = (data[0], data[1], data[2])
+                u = (data[3], data[4], data[5])
+                v = (data[6], data[7], data[8])
+                anchors[key] = {"p": p, "u": u, "v": v}
 
     db['part_definition'].insert({'part_definition_code': code,
                                   'cad_file': stepfile_path,
                                   'parts_library': None,
                                   'parts_library_ref': None,
                                   'script_file': None})
-    # todo -> update the stepzip example with p, u, v
+
     for k, v in anchors.items():
         db['anchor'].insert({'part_definition': code,
                              'anchor_code': k,
-                             'p_x': v['position'][0],
-                             'p_y': v['position'][1],
-                             'p_z': v['position'][2],
-                             'u_x': v['direction'][0],
-                             'u_y': v['direction'][1],
-                             'u_z': v['direction'][2],
-                             'v_x': None,
-                             'v_y': None,
-                             'v_z': None,
+                             'p_x': v['p'][0],
+                             'p_y': v['p'][1],
+                             'p_z': v['p'][2],
+                             'u_x': v['u'][0],
+                             'u_y': v['u'][1],
+                             'u_z': v['u'][2],
+                             'v_x': v['v'][0],
+                             'v_y': v['v'][1],
+                             'v_z': v['v'][2],
                              'tolerance': ""  # todo -> tolerance
                              })
 
